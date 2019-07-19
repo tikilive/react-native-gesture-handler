@@ -33,6 +33,7 @@ export type PropType = {
   drawerPosition: 'left' | 'right',
   drawerLockMode?: 'unlocked' | 'locked-closed' | 'locked-open',
   drawerWidth: number,
+  frontDrawerOffset: Number,
   keyboardDismissMode?: 'none' | 'on-drag',
   onDrawerClose?: Function,
   onDrawerOpen?: Function,
@@ -73,6 +74,7 @@ export type DrawerMovementOptionType = {
 export default class DrawerLayout extends Component<PropType, StateType> {
   static defaultProps = {
     drawerWidth: 200,
+    frontDrawerOffset: 0,
     drawerPosition: 'left',
     useNativeAnimations: true,
     drawerType: 'front',
@@ -115,9 +117,18 @@ export default class DrawerLayout extends Component<PropType, StateType> {
       this.props.drawerPosition !== props.drawerPosition ||
       this.props.drawerWidth !== props.drawerWidth ||
       this.props.drawerType !== props.drawerType ||
+      this.props.frontDrawerOffset !== props.frontDrawerOffset ||
       this.state.containerWidth !== state.containerWidth
     ) {
       this._updateAnimatedEvent(props, state);
+    }
+  }
+
+  _getFrontDrawerOffset = () => {
+    if (this.props.drawerType === 'front') {
+      return this.props.frontDrawerOffset
+    } else {
+      return 0
     }
   }
 
@@ -292,8 +303,8 @@ export default class DrawerLayout extends Component<PropType, StateType> {
     // than the container size by the value of SLOP. This will make it only
     // activate when gesture happens not further than SLOP away from the edge
     const hitSlop = fromLeft
-      ? { left: 0, width: showing ? undefined : edgeWidth }
-      : { right: 0, width: showing ? undefined : edgeWidth };
+      ? { left: 0, width: showing ? undefined : edgeWidth  + this._getFrontDrawerOffset() }
+      : { right: 0, width: showing ? undefined : edgeWidth  + this._getFrontDrawerOffset() };
     this._panGestureHandler.current &&
       this._panGestureHandler.current.setNativeProps({
         hitSlop,
@@ -425,11 +436,21 @@ export default class DrawerLayout extends Component<PropType, StateType> {
       containerStyles = {
         transform: [{ translateX: containerTranslateX }],
       };
+    } else {
+      if (fromLeft) {
+        containerStyles = {
+          paddingLeft: this._getFrontDrawerOffset()
+        }
+      } else {
+        containerStyles = {
+          paddingRight: this._getFrontDrawerOffset()
+        }
+      }
     }
 
     let drawerTranslateX = 0;
     if (drawerSlide) {
-      const closedDrawerOffset = fromLeft ? -drawerWidth : drawerWidth;
+      const closedDrawerOffset = fromLeft ? -drawerWidth + this._getFrontDrawerOffset() : drawerWidth - this._getFrontDrawerOffset();
       drawerTranslateX = openValue.interpolate({
         inputRange: [0, 1],
         outputRange: [closedDrawerOffset, 0],
@@ -494,8 +515,8 @@ export default class DrawerLayout extends Component<PropType, StateType> {
     // than the container size by the value of SLOP. This will make it only
     // activate when gesture happens not further than SLOP away from the edge
     const hitSlop = fromLeft
-      ? { left: 0, width: this._drawerShown ? undefined : edgeWidth }
-      : { right: 0, width: this._drawerShown ? undefined : edgeWidth };
+      ? { left: 0, width: this._drawerShown ? undefined : edgeWidth + this._getFrontDrawerOffset() }
+      : { right: 0, width: this._drawerShown ? undefined : edgeWidth + this._getFrontDrawerOffset() };
 
     return (
       <PanGestureHandler
